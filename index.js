@@ -5,41 +5,49 @@ const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Replace with your actual cookie string (keep it safe)
+// Replace this with your actual working CodeSandbox cookie
 const COOKIE_STRING = "cf_clearance=...; codesandbox-session=...";
 
-// Replace with your Devbox ID
+// Your base Devbox ID
 const DEVBOX_URL = "https://codesandbox.io/p/devbox/57952w";
 
-// Parse cookie string into puppeteer-friendly format
+// Helper to parse cookies for Puppeteer
 function parseCookies(cookieStr) {
   return cookieStr.split(";").map(c => {
     const [name, ...val] = c.trim().split("=");
-    return { name, value: val.join("="), domain: ".codesandbox.io" };
+    return {
+      name,
+      value: val.join("="),
+      domain: ".codesandbox.io"
+    };
   });
 }
 
-async function forkDevbox() {
+// Fork function that streams log output
+async function forkDevboxWithLogs(log) {
+  log("📦 Launching browser...");
   const browser = await puppeteer.launch({
     headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
-      "--disable-gpu",
       "--disable-dev-shm-usage",
+      "--disable-gpu",
       "--no-zygote",
       "--single-process"
     ]
   });
 
   const page = await browser.newPage();
+  log("🍪 Setting cookies...");
   await page.setCookie(...parseCookies(COOKIE_STRING));
-  console.log("🌐 Navigating to Devbox...");
+
+  log("🌐 Navigating to Devbox...");
   await page.goto(DEVBOX_URL, { waitUntil: "networkidle2", timeout: 60000 });
 
-  console.log("⏳ Clicking Fork...");
+  log("🔍 Looking for fork button...");
   const clicked = await page.evaluate(() => {
-    const btn = Array.from(document.querySelectorAll("button")).find(b => b.innerText.toLowerCase().includes("fork"));
+    const btn = [...document.querySelectorAll("button")].find(b => b.innerText.toLowerCase().includes("fork"));
     if (btn) {
       btn.click();
       return true;
@@ -49,24 +57,45 @@ async function forkDevbox() {
 
   if (!clicked) {
     await browser.close();
-    return "❌ Fork button not found";
+    return "❌ Fork button not found.";
   }
 
-  console.log("⏳ Waiting for redirect...");
+  log("✅ Clicked fork. Waiting for new workspace...");
   await page.waitForNavigation({ waitUntil: "networkidle2" });
 
-  const forkedUrl = page.url();
-  fs.writeFileSync("latest_fork.json", JSON.stringify({ url: forkedUrl }, null, 2));
+  const newUrl = page.url();
+  log(`🎯 Forked successfully: ${newUrl}`);
+
+  fs.writeFileSync("latest_fork.json", JSON.stringify({ url: newUrl }, null, 2));
   await browser.close();
-  return `✅ Forked successfully: ${forkedUrl}`;
+
+  return `✅ DONE — Forked to: <a href="${newUrl}" target="_blank">${newUrl}</a>`;
 }
 
-// Web routes
-app.get("/", (req, res) => res.send("🟢 Devbox Forker Ready"));
-app.get("/fork", async (req, res) => res.send(await forkDevbox()));
-app.get("/latest", (req, res) => {
-  if (fs.existsSync("latest_fork.json")) res.send(fs.readFileSync("latest_fork.json", "utf-8"));
-  else res.send("No fork yet.");
+// Serve the log-streaming on root `/`
+app.get("/", async (req, res) => {
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+
+  const log = msg => res.write(`<pre>${msg}</pre>\n`);
+
+  log(`<h2>🧪 Devbox Auto-Fork DEMO</h2>`);
+  try {
+    const finalMsg = await forkDevboxWithLogs(log);
+    log(finalMsg);
+    res.end(`<hr><b>✅ Demo complete</b>`);
+  } catch (err) {
+    log(`❌ ERROR: ${err.message}`);
+    res.end(`<hr><b>❌ Failed</b>`);
+  }
 });
 
-app.listen(PORT, () => console.log(`🚀 Listening on port ${PORT}`));
+// Show the last forked URL
+app.get("/latest", (req, res) => {
+  if (fs.existsSync("latest_fork.json")) {
+    res.send(fs.readFileSync("latest_fork.json", "utf-8"));
+  } else {
+    res.send("No forks yet.");
+  }
+});
+
+app.listen(PORT, () => console.log(`🚀 Running at http://localhost:${PORT}`));
