@@ -20,7 +20,7 @@ const cookies = [
   { "name": "__Secure-3PSIDCC", "value": "AKEyXzXL...", "domain": ".google.com", "path": "/", "secure": true }
 ];
 
-const notebookUrl = "https://colab.research.google.com/drive/PASTE_YOUR_NOTEBOOK_ID_HERE";
+const notebookUrl = "https://colab.research.google.com/drive/1xY2ctDm6KdnW6uNt1vzQVX_YdzBP7O6n#scrollTo=eScOrw202fPf";
 
 let log = "✅ Bot initialized...\n";
 
