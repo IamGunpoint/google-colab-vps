@@ -1,5 +1,6 @@
 const express = require("express");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+const chromium = require("chrome-aws-lambda");
 const fs = require("fs");
 
 const app = express();
@@ -17,24 +18,15 @@ function parseCookies(cookieStr) {
 
 async function forkDevbox() {
   const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--no-zygote",
-      "--single-process"
-    ]
+    args: chromium.args,
+    executablePath: await chromium.executablePath,
+    headless: chromium.headless
   });
 
   const page = await browser.newPage();
   await page.setCookie(...parseCookies(COOKIE_STRING));
-  console.log("🌐 Opening Devbox...");
-  await page.goto(DEVBOX_URL, { waitUntil: "networkidle2", timeout: 60000 });
 
-  console.log("⏳ Looking for Fork button...");
-  await page.waitForSelector("button", { timeout: 20000 });
+  await page.goto(DEVBOX_URL, { waitUntil: "networkidle2", timeout: 60000 });
 
   const clicked = await page.evaluate(() => {
     const btn = [...document.querySelectorAll("button")].find(b => b.innerText.toLowerCase().includes("fork"));
@@ -50,9 +42,7 @@ async function forkDevbox() {
     return "❌ Fork button not found";
   }
 
-  console.log("✅ Forking... waiting for redirect");
   await page.waitForNavigation({ waitUntil: "networkidle2" });
-
   const url = page.url();
   fs.writeFileSync("latest_fork.json", JSON.stringify({ url }, null, 2));
   await browser.close();
@@ -66,4 +56,4 @@ app.get("/latest", (req, res) => {
   else res.send("No fork yet.");
 });
 
-app.listen(PORT, () => console.log(`🚀 on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🚀 App running on http://localhost:${PORT}`));
