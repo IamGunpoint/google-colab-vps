@@ -1,0 +1,18 @@
+{
+  "name": "colab-autostart-bot",
+  "version": "1.0.0",
+  "description": "Auto-start Google Colab runtime using Puppeteer + Express with embedded cookies, deployable on Render.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "puppeteer": "^21.3.8"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "author": "your_name_here",
+  "license": "MIT"
+}
