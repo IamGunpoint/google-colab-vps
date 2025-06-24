@@ -1,57 +1,62 @@
-// index.js
-const puppeteer = require("puppeteer");
+// ✅ Express-based Node.js bot for Render
+// ✅ No Puppeteer / No Chrome
+// ✅ Includes Colab cookies for simulated header auth
+// ✅ Logs shown in browser
+
 const express = require("express");
+const https = require("https");
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-// === 🍪 EMBEDDED GOOGLE COOKIES === //
-const cookies = [
-  { name: "SAPISID", value: "6mgTcD9LptkHLGwb/AQwBxaz5MhBgVwgXC", domain: ".google.com", path: "/", secure: true },
-  { name: "APISID", value: "2082iADWR7Neg5U_/At7GAxV1_JkCEWzSU", domain: ".google.com", path: "/", secure: true },
-  { name: "HSID", value: "Auk17c93x4Z1KNG7N", domain: ".google.com", path: "/", secure: true },
-  { name: "SSID", value: "AqaUNyCvBef9kgVJE", domain: ".google.com", path: "/", secure: true },
-  { name: "SID", value: "g.a000yQ...", domain: ".google.com", path: "/", secure: true },
-  { name: "SIDCC", value: "AKEyXzUgX...", domain: ".google.com", path: "/", secure: true },
-  { name: "__Secure-1PAPISID", value: "6mgTcD9L...", domain: ".google.com", path: "/", secure: true },
-  { name: "__Secure-1PSID", value: "g.a000yQj...", domain: ".google.com", path: "/", secure: true },
-  { name: "__Secure-1PSIDCC", value: "AKEyXzXIK...", domain: ".google.com", path: "/", secure: true },
-  { name: "__Secure-3PAPISID", value: "6mgTcD9L...", domain: ".google.com", path: "/", secure: true },
-  { name: "__Secure-3PSID", value: "g.a000yQj...", domain: ".google.com", path: "/", secure: true },
-  { name: "__Secure-3PSIDCC", value: "AKEyXzXL...", domain: ".google.com", path: "/", secure: true }
-];
+// ✅ Old cookies you provided earlier (do NOT share this publicly)
+const COOKIE_STRING = "__Secure-1PAPISID=6mgTcD9LptkHLGwb/AQwBxaz5MhBgVwgXC; __Secure-1PSID=g.a000yQj-iBvMqlEA88m9q4pcbBTGpQ5fmy98Bvxmloov2EW8BaLkM6CvQR5WI6NJkvE35OA8hAACgYKAW8SARYSFQHGX2MiFn1Xf-DAgT2nT6M5_i-BIxoVAUF8yKrY1AAcMjd2NNrcJMicuAbm0076; __Secure-1PSIDCC=AKEyXzXIKrwAHh9PktdGTfXUm-a-ocKjFVjejSSgxATqwDGoxaxg-u2bR93BPQ-0BYEetYG4bhY; __Secure-1PSIDTS=sidts-CjIB5H03P2b1A54yhkgUfGEDDt9PoB8cZXNgk_23zK-4Qf9Z3TixsUoOR2VPPeV9YX0DBRAA; __Secure-3PAPISID=6mgTcD9LptkHLGwb/AQwBxaz5MhBgVwgXC; __Secure-3PSID=g.a000yQj-iBvMqlEA88m9q4pcbBTGpQ5fmy98Bvxmloov2EW8BaLkOxS2noWdpJsH30xCOFZHKgACgYKAW4SARYSFQHGX2MiTdsrvZZZPayvD6qQrb9CrhoVAUF8yKqd0L3by_i6hdSz-9IC3OEc0076; __Secure-3PSIDCC=AKEyXzXLKnRNkR4_0sIiu5shgLBREZFEJIlO0qEhvazrJPI3KRoLPiGDJ436tW86CPm09JWooJnG; __Secure-3PSIDTS=sidts-CjIB5H03P2b1A54yhkgUfGEDDt9PoB8cZXNgk_23zK-4Qf9Z3TixsUoOR2VPPeV9YX0DBRAA; SID=g.a000yQj-iBvMqlEA88m9q4pcbBTGpQ5fmy98Bvxmloov2EW8BaLkPonnOdi7Rp6_ZBszpf5-6AACgYKAUwSARYSFQHGX2MiSB36S8lZ4fll3Qb_BeYnrRoVAUF8yKpRfA-vp1whWEZyBWK6giHI0076; HSID=Auk17c93x4Z1KNG7N; SAPISID=6mgTcD9LptkHLGwb/AQwBxaz5MhBgVwgXC";
 
-const notebookUrl = "https://colab.research.google.com/drive/1xY2ctDm6KdnW6uNt1vzQVX_YdzBP7O6n#scrollTo=eScOrw202fPf";
+// Target Colab notebook
+const COLAB_URL = "https://colab.research.google.com/drive/1xY2ctDm6KdnW6uNt1vzQVX_YdzBP7O6n";
 
-let log = "✅ Bot initialized...\n";
-
-async function startColabSession() {
-  log += `[${new Date().toISOString()}] 🔁 Launching Puppeteer...\n`;
-  const browser = await puppeteer.launch({ headless: "new", args: ['--no-sandbox'] });
-  const page = await browser.newPage();
-  await page.setCookie(...cookies);
-
-  try {
-    await page.goto(notebookUrl, { waitUntil: "networkidle2", timeout: 60000 });
-    await page.waitForTimeout(10000);
-
-    const startButton = await page.$("colab-connect-button") || await page.$("[id*=connect] button");
-    if (startButton) {
-      await startButton.click();
-      log += `[${new Date().toISOString()}] 🚀 Runtime (re)started.\n`;
-    } else {
-      log += `[${new Date().toISOString()}] ✅ Runtime already running or button not found.\n`;
-    }
-  } catch (err) {
-    log += `[${new Date().toISOString()}] ❌ Error: ${err.message}\n`;
-  } finally {
-    await browser.close();
-  }
+let logs = [];
+function log(msg) {
+  const timestamp = new Date().toISOString();
+  const entry = `[${timestamp}] ${msg}`;
+  logs.push(entry);
+  if (logs.length > 1000) logs.shift();
+  console.log(entry);
 }
 
-// 🔁 Auto check every 5 minutes
-setInterval(() => startColabSession(), 5 * 60 * 1000);
-startColabSession();
+function pingColab() {
+  log("📡 Pinging Colab notebook...");
 
-// Fake port for Render + show logs
-app.get("/", (_, res) => res.send(`<pre>${log}</pre>`));
-app.listen(PORT, () => console.log(`🌐 Web panel: http://localhost:${PORT}`));
+  const req = https.request(
+    COLAB_URL,
+    {
+      method: "GET",
+      headers: {
+        "Cookie": COOKIE_STRING,
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+      }
+    },
+    (res) => {
+      log(`✅ Colab responded with status ${res.statusCode}`);
+    }
+  );
+
+  req.on("error", (err) => {
+    log(`❌ Error contacting Colab: ${err.message}`);
+  });
+
+  req.end();
+}
+
+// Auto-ping every 5 minutes
+setInterval(pingColab, 5 * 60 * 1000);
+pingColab();
+
+// Web panel for log view
+app.get("/", (_, res) => {
+  res.send(
+    `<h1>🟢 Colab Bot Running (No Puppeteer)</h1><pre>${logs.slice(-100).join("\n")}</pre>`
+  );
+});
+
+app.listen(PORT, () => log(`🌐 Bot Web Panel running on port ${PORT}`));
