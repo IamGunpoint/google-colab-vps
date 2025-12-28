@@ -1,7 +1,8 @@
 Code:
-!apt-get update -y
-!apt-get install -y tmate
-
+```
+apt-get update -y
+apt-get install -y tmate
+```
 
 Copyright © 2025 Aman Mishra
 
