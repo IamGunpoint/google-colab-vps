@@ -1,3 +1,8 @@
+Code:
+!apt-get update -y
+!apt-get install -y tmate
+
+
 Copyright © 2025 Aman Mishra
 
 Permission is hereby granted to use this software solely for **personal educational purposes**.
